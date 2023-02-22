@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def periodic(coord, box):
     if abs(coord) > 0.5 * box:
         return coord - np.sign(coord) * box
@@ -17,18 +18,21 @@ class Box():
         yb = periodic(yb, self.y)
         zb = periodic(zb, self.z)
         return xb, yb, zb
-    
+
+
 class Ring:
     def __init__(self, num_beads, length_bond):
         self.num_beads = num_beads
         self.lenth_bond = length_bond
         self.radius = length_bond / (2*np.sin(np.pi/num_beads))
+
     def get_bonds(self):
         bonds = []
-        for i in range (1, self.num_beads):
+        for i in range(1, self.num_beads):
             bonds.append([i, i+1])
         bonds.append([1, self.num_beads])
         return bonds
+
     def get_coordinates(self):
         x = []
         y = []
@@ -38,9 +42,16 @@ class Ring:
             x.append(self.radius*np.cos(alfa))
             y.append(self.radius*np.sin(alfa))
             z.append(0.0)
-        return x,y,z
-            
-        
+        return x, y, z
+    
+    def get_angles(self):
+        angles = []
+        for i in range(1, self.num_beads-1):
+            angles.append([i, i+1, i+2])
+        angles.append([self.num_beads-1, self.num_beads, 1])
+        angles.append([self.num_beads, 1, 2])
+        return angles
+    
 if __name__ == '__main__':
     length_chain = 100
     length_bond = 0.69336
@@ -49,22 +60,29 @@ if __name__ == '__main__':
     box = Box(box_size, box_size, box_size)
     num_atoms = int(box.x * box.y * box.z * 3)
     num_solvent = num_atoms - length_chain
-    x,y,z = ring.get_coordinates()
+    x, y, z = ring.get_coordinates()
     bonds = ring.get_bonds()
+    angles = ring.get_angles()
     num_bonds = len(bonds)
-    
+
     fcoord = open('COORD', 'w')
     fbonds = open('BONDS', 'w')
+    fangles = open('ANGLS', 'w')
+    fangles.write(f'num_angles {len(angles)} \n')
     fcoord.write(f'num_atoms {num_atoms} box_size {box.x} {box.y} {box.z}\n')
     fbonds.write(
         f'num_bonds {num_bonds} num_atoms {num_atoms} box_size {box.x} {box.y} {box.z}\n')
     temp = 0
-    for x_b,y_b,z_b in zip(x, y, z):
+    for x_b, y_b, z_b in zip(x, y, z):
         temp += 1
-        fcoord.write(f'{temp: <10} {x_b: <25} {y_b: <25} {z_b: <25} 1\n'.format(temp, x_b, y_b, z_b))
+        fcoord.write(f'{temp: <10} {x_b: <25} {y_b: <25} {z_b: <25} 1\n'.format(
+            temp, x_b, y_b, z_b))
     for i in range(num_bonds):
-            fbonds.write(f'{bonds[i][0]} {bonds[i][1]}\n')
+        fbonds.write(f'{bonds[i][0]} {bonds[i][1]}\n')
     fbonds.close()
+    for i in range(len(angles)):
+        fangles.write(f'{angles[i][0]} {angles[i][1]} {angles[i][2]}\n')
+    fangles.close()
     x_s = np.random.uniform(-box.x/2, box.x/2, num_solvent)
     y_s = np.random.uniform(-box.y/2, box.y/2, num_solvent)
     z_s = np.random.uniform(-box.z/2, box.z/2, num_solvent)
